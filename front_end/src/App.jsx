@@ -3,7 +3,10 @@ import './App.css';
 import Register from './component/Register';
 import Login from './component/Login';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Dashboard from './component/Dashboard';
+// import Dashboard from './component/Dashboard';
+import EmployeeDashboard from './component/EmployeeDashboard';
+import AdminDashboard from './component/Admindashboard';
+import SupportDashboard from './component/SupportDashboard';
 
 function App() {
   return (
@@ -17,7 +20,13 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<EmployeeDashboard />} />
+        
+        <Route path="/AdminDashboard" element={<AdminDashboard />} />
+
+        <Route path="/SupportDashboard" element={<SupportDashboard />} />
+
+
 
       </Routes>
     </BrowserRouter>

@@ -14,23 +14,25 @@ from accounts.models import User
 @permission_classes([IsAuthenticated])
 def raise_ticket(request):
 
+    print("Request Data:", request.data)
+    print("User:", request.user.username)
+    print("Role:", request.user.role)
+
     if request.user.role != "EMPLOYEE":
         return Response(
             {"message": "Only employees can raise tickets."},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     serializer = TicketSerializer(data=request.data)
 
     if serializer.is_valid():
-
         serializer.save(employee=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED)
+    print("Serializer Errors:", serializer.errors)
 
-    return Response(serializer.errors,
-                    status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Employee views own tickets
@@ -71,29 +73,47 @@ def all_tickets(request):
 
 
 # Admin assigns support
-@api_view(['PUT'])
+@api_view(["PUT"])
 @permission_classes([IsAuthenticated])
 def assign_support(request, pk):
 
-    
-    ticket = Ticket.objects.get(id=pk)
-
-    support = User.objects.get(id=request.data["support_id"])
-
-    ticket.assigned_to = support
-    ticket.status = "IN_PROGRESS"
-    ticket.save()
     if request.user.role != "ADMIN":
         return Response(
             {"message": "Permission Denied"},
             status=status.HTTP_403_FORBIDDEN
         )
-    else:
-        return Response({
-            "ticket_id": ticket.id,
-            "assigned_to": ticket.assigned_to.username,
-            "status": ticket.status
-        })
+
+    try:
+
+        ticket = Ticket.objects.get(id=pk)
+
+        support = User.objects.get(
+            id=request.data["support_id"],
+            role="SUPPORT"
+        )
+
+    except Ticket.DoesNotExist:
+        return Response(
+            {"message": "Ticket Not Found"},
+            status=404
+        )
+
+    except User.DoesNotExist:
+        return Response(
+            {"message": "Support User Not Found"},
+            status=404
+        )
+
+    ticket.assigned_to = support
+    ticket.status = "IN_PROGRESS"
+    ticket.save()
+
+    return Response({
+        "message": "Support Assigned Successfully",
+        "ticket_id": ticket.id,
+        "assigned_to": support.username,
+        "status": ticket.status
+    })
 
 # Support views assigned tickets
 @api_view(['GET'])
@@ -148,3 +168,26 @@ def close_ticket(request, pk):
     return Response({
         "message": "Ticket Closed Successfully"
     })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def support_users(request):
+
+    if request.user.role != "ADMIN":
+        return Response(
+            {"message": "Permission Denied"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    users = User.objects.filter(role="SUPPORT")
+
+    data = []
+
+    for user in users:
+        data.append({
+            "id": user.id,
+            "username": user.username
+        })
+
+    return Response(data)

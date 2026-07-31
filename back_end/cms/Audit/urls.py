@@ -29,6 +29,12 @@ urlpatterns = [
     ),
 
     path(
+    "admin/support-users/",
+    support_users,
+    name="support-users"
+     ),
+
+    path(
         "support/tickets/",
         support_tickets,
         name="support-tickets"

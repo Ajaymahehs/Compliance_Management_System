@@ -44,25 +44,30 @@ const Login = () => {
 
     console.log(response.data);
 
+    // Save JWT Tokens
+    localStorage.setItem("access", response.data.access);
+    localStorage.setItem("refresh", response.data.refresh);
 
-    // Store token if using JWT
-    if (response.data.access) {
-      localStorage.setItem("access", response.data.access);
-      localStorage.setItem("refresh", response.data.refresh);
+    // Save User Details
+    localStorage.setItem("username", response.data.username);
+    localStorage.setItem("role", response.data.role);
+
+    // Navigate based on role
+    if (response.data.role === "EMPLOYEE") {
+      navigate("/dashboard");
+    } else if (response.data.role === "ADMIN") {
+      navigate("/AdminDashboard");
+    } else if (response.data.role === "SUPPORT") {
+      navigate("/Supportdashboard");
+    } else {
+      alert("Invalid User Role");
     }
-
-    // Store user data (optional)
-    if (response.data.user) {
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-    }
-
-    navigate("/dashboard");
 
   } catch (error) {
     console.error(error);
 
     if (error.response) {
-      alert(error.response.data.message || "Invalid username or Password");
+      alert(error.response.data.message || "Invalid Username or Password");
     } else {
       alert("Server Error");
     }

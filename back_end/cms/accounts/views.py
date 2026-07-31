@@ -3,6 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializer import MyTokenObtainPairSerializer
 
 from .serializer import RegisterSerializer
 
@@ -51,3 +53,6 @@ def logout(request):
             {"error": "Invalid or expired refresh token"},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class LoginView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
