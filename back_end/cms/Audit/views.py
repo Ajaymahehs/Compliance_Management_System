@@ -123,22 +123,28 @@ def support_tickets(request):
 @permission_classes([IsAuthenticated])
 def close_ticket(request, pk):
 
-    ticket = Ticket.objects.get(id=pk)
-
-    ticket.status = "CLOSED"
-
-    ticket.resolution = request.data["resolution"]
-
-    ticket.save()
-
     if request.user.role != "SUPPORT":
         return Response(
             {"message": "Permission Denied"},
             status=status.HTTP_403_FORBIDDEN
         )
-    else:
+
+    ticket = Ticket.objects.get(id=pk)
+
+    if ticket.assigned_to != request.user:
         return Response(
-            {
-                "message": "Ticket Closed Successfully"
-            }
+            {"message": "This ticket is not assigned to you."},
+            status=status.HTTP_403_FORBIDDEN
         )
+
+    ticket.status = "CLOSED"
+    ticket.resolution = request.data.get("resolution", "")
+
+    if "resolution_image" in request.FILES:
+        ticket.resolution_image = request.FILES["resolution_image"]
+
+    ticket.save()
+
+    return Response({
+        "message": "Ticket Closed Successfully"
+    })
