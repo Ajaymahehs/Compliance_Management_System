@@ -1,17 +1,55 @@
-from django.shortcuts import render
-
-# Create your views here.
-from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Ticket
 from .serializers import TicketSerializer
 
+from accounts.models import User
 
-# GET جميع tickets
+
+# Employee raises ticket
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def raise_ticket(request):
+
+    serializer = TicketSerializer(data=request.data)
+
+    if serializer.is_valid():
+
+        serializer.save(employee=request.user)
+
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)
+
+    return Response(serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST)
+
+
+# Employee views own tickets
 @api_view(['GET'])
-def ticket_list(request):
+@permission_classes([IsAuthenticated])
+def my_tickets(request):
+
+    tickets = Ticket.objects.filter(employee=request.user)
+
+    serializer = TicketSerializer(tickets, many=True)
+
+    return Response(serializer.data)
+
+
+# Admin views all tickets
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_tickets(request):
+
+    if request.user.role != "ADMIN":
+        return Response(
+            {"message": "Permission Denied"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     tickets = Ticket.objects.all()
 
     serializer = TicketSerializer(tickets, many=True)
@@ -19,16 +57,58 @@ def ticket_list(request):
     return Response(serializer.data)
 
 
-# POST create ticket
-@api_view(['POST'])
-def create_ticket(request):
+# Admin assigns support
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def assign_support(request, pk):
 
-    serializer = TicketSerializer(data=request.data)
+    ticket = Ticket.objects.get(id=pk)
 
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED)
+    support = User.objects.get(id=request.data["support_id"])
 
-    return Response(serializer.errors,
-                    status=status.HTTP_400_BAD_REQUEST)
+    ticket.assigned_to = support
+    ticket.status = "IN_PROGRESS"
+    ticket.save()
+
+    return Response({
+        "ticket_id": ticket.id,
+        "assigned_to": ticket.assigned_to.username,
+        "status": ticket.status
+    })
+
+# Support views assigned tickets
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def support_tickets(request):
+
+    print("Logged in user:", request.user.username)
+    print("Role:", request.user.role)
+
+    tickets = Ticket.objects.filter(
+        assigned_to=request.user
+    )
+
+    print("Tickets:", tickets)
+
+    serializer = TicketSerializer(tickets, many=True)
+
+    return Response(serializer.data)
+
+# Support closes ticket
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def close_ticket(request, pk):
+
+    ticket = Ticket.objects.get(id=pk)
+
+    ticket.status = "CLOSED"
+
+    ticket.resolution = request.data["resolution"]
+
+    ticket.save()
+
+    return Response(
+        {
+            "message": "Ticket Closed Successfully"
+        }
+    )
