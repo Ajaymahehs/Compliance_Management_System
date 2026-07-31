@@ -27,8 +27,17 @@ def raise_ticket(request):
     serializer = TicketSerializer(data=request.data)
 
     if serializer.is_valid():
-        serializer.save(employee=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        ticket = serializer.save(employee=request.user)
+
+        response_serializer = TicketSerializer(
+            ticket,
+            context={"request": request}
+        )
+
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
     print("Serializer Errors:", serializer.errors)
 
@@ -49,7 +58,11 @@ def my_tickets(request):
 
     tickets = Ticket.objects.filter(employee=request.user)
 
-    serializer = TicketSerializer(tickets, many=True)
+    serializer = TicketSerializer(
+    tickets,
+    many=True,
+    context={"request": request}
+)
 
     return Response(serializer.data)
 
@@ -67,7 +80,11 @@ def all_tickets(request):
 
     tickets = Ticket.objects.all()
 
-    serializer = TicketSerializer(tickets, many=True)
+    serializer = TicketSerializer(
+    tickets,
+    many=True,
+    context={"request": request}
+)
 
     return Response(serializer.data)
 
@@ -116,27 +133,28 @@ def assign_support(request, pk):
     })
 
 # Support views assigned tickets
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def support_tickets(request):
 
-    print("Logged in user:", request.user.username)
-    print("Role:", request.user.role)
-
-    tickets = Ticket.objects.filter(
-        assigned_to=request.user
-    )
-
-    print("Tickets:", tickets)
-
-    serializer = TicketSerializer(tickets, many=True)
     if request.user.role != "SUPPORT":
         return Response(
             {"message": "Permission Denied"},
             status=status.HTTP_403_FORBIDDEN
         )
-    else:
-        return Response(serializer.data)
+
+    tickets = Ticket.objects.filter(
+        assigned_to=request.user,
+        status="IN_PROGRESS"
+    )
+
+    serializer = TicketSerializer(
+        tickets,
+        many=True,
+        context={"request": request}
+    )
+
+    return Response(serializer.data)
 
 # Support closes ticket
 @api_view(['PUT'])

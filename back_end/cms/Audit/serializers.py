@@ -9,21 +9,44 @@ class TicketSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    assigned_to = serializers.CharField(
-        source="assigned_to.username",
-        read_only=True
-    )
+    assigned_to = serializers.SerializerMethodField()
+    resolution_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
-        fields = "__all__"
-
-        read_only_fields = (
+        fields = [
+            "id",
             "employee",
             "assigned_to",
+            "title",
+            "description",
+            "priority",
             "status",
             "resolution",
             "resolution_image",
             "created_at",
             "updated_at",
-        )
+        ]
+
+    def get_assigned_to(self, obj):
+
+        if obj.assigned_to:
+            return {
+                "id": obj.assigned_to.id,
+                "username": obj.assigned_to.username
+            }
+
+        return None
+
+    def get_resolution_image(self, obj):
+
+        request = self.context.get("request")
+
+        if obj.resolution_image:
+
+            if request:
+                return request.build_absolute_uri(obj.resolution_image.url)
+
+            return obj.resolution_image.url
+
+        return None

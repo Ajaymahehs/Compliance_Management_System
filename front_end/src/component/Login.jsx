@@ -1,14 +1,29 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaShieldAlt, FaEye, FaEyeSlash, FaEnvelope, FaLock } from "react-icons/fa";
-import "./Login.css";
 import axios from "axios";
 
+import {
+  FaCheckCircle,
+  FaEye,
+  FaEyeSlash,
+  FaFileAlt,
+  FaLock,
+  FaShieldAlt,
+  FaSignInAlt,
+  FaTimes,
+  FaUser,
+} from "react-icons/fa";
+
+import "./Login.css";
+
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 const Login = () => {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [loginData, setLoginData] = useState({
     username: "",
@@ -16,162 +31,366 @@ const Login = () => {
     remember: false,
   });
 
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+  const handleChange = (event) => {
+    const { name, value, checked, type } = event.target;
 
-    setLoginData({
-      ...loginData,
+    setLoginData((previousData) => ({
+      ...previousData,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
+
+    if (errorMessage) {
+      setErrorMessage("");
+    }
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  if (!loginData.username || !loginData.password) {
-    alert("Please fill all fields");
-    return;
-  }
+    const username = loginData.username.trim();
+    const password = loginData.password;
 
-  try {
-    const response = await axios.post(
-      "http://127.0.0.1:8000/api/login/",
-      {
-        username: loginData.username,
-        password: loginData.password,
+    if (!username || !password) {
+      setErrorMessage(
+        "Enter your username and password to continue."
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/login/`,
+        {
+          username,
+          password,
+        }
+      );
+
+      const {
+        access,
+        refresh,
+        username: responseUsername,
+        role,
+      } = response.data;
+
+      if (!access || !refresh || !role) {
+        throw new Error(
+          "The login response is missing required user information."
+        );
       }
-    );
 
-    console.log(response.data);
+      /*
+       * Your dashboards currently read from localStorage.
+       * Therefore, tokens must remain in localStorage.
+       */
+      localStorage.setItem("access", access);
+      localStorage.setItem("refresh", refresh);
+      localStorage.setItem(
+        "username",
+        responseUsername || username
+      );
+      localStorage.setItem("role", role);
+      localStorage.setItem(
+        "remember",
+        String(loginData.remember)
+      );
 
-    // Save JWT Tokens
-    localStorage.setItem("access", response.data.access);
-    localStorage.setItem("refresh", response.data.refresh);
+      const normalizedRole = role.toUpperCase();
 
-    // Save User Details
-    localStorage.setItem("username", response.data.username);
-    localStorage.setItem("role", response.data.role);
+      if (normalizedRole === "EMPLOYEE") {
+        navigate("/dashboard", { replace: true });
+      } else if (normalizedRole === "ADMIN") {
+        navigate("/AdminDashboard", {
+          replace: true,
+        });
+      } else if (normalizedRole === "SUPPORT") {
+        navigate("/Supportdashboard", {
+          replace: true,
+        });
+      } else {
+        localStorage.clear();
+        setErrorMessage(
+          "Your account has an unsupported role."
+        );
+      }
+    } catch (error) {
+      console.error("Login error:", error);
 
-    // Navigate based on role
-    if (response.data.role === "EMPLOYEE") {
-      navigate("/dashboard");
-    } else if (response.data.role === "ADMIN") {
-      navigate("/AdminDashboard");
-    } else if (response.data.role === "SUPPORT") {
-      navigate("/Supportdashboard");
-    } else {
-      alert("Invalid User Role");
+      const responseData = error.response?.data;
+
+      if (responseData) {
+        setErrorMessage(
+          responseData.message ||
+            responseData.detail ||
+            responseData.error ||
+            "Invalid username or password."
+        );
+      } else {
+        setErrorMessage(
+          "Unable to connect to the server. Check that the backend is running."
+        );
+      }
+    } finally {
+      setSubmitting(false);
     }
+  };
 
-  } catch (error) {
-    console.error(error);
-
-    if (error.response) {
-      alert(error.response.data.message || "Invalid Username or Password");
-    } else {
-      alert("Server Error");
-    }
-  }
-};
   return (
-    <div className="login-page">
+    <main className="royal-login-page">
+      <section className="login-presentation">
+        <div className="presentation-glow presentation-glow-one" />
+        <div className="presentation-glow presentation-glow-two" />
 
-      <div className="login-left">
+        <div className="login-brand">
+          <div className="login-brand-icon">
+            <FaShieldAlt />
+          </div>
 
-        <FaShieldAlt className="shield" />
-
-        <h1>Compliance Management System</h1>
-
-        <p>
-          Securely manage audits, findings, corrective actions,
-          documents, reports and compliance.
-        </p>
-
-      </div>
-
-      <div className="login-right" >
-
-        <div className="login-card">
-
-          <h1 > WELCOME </h1>
-
-          <p>Login to continue</p>
-
-          <form onSubmit={handleSubmit}>
-
-            <div className="input-box">
-
-              <FaEnvelope className="icon"/>
-
-              <input
-                type="username"
-                name="username"
-                placeholder="username"
-                value={loginData.username}
-                onChange={handleChange}
-              />
-
-            </div>
-
-            <div className="input-box">
-
-              <FaLock className="icon"/>
-
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Password"
-                value={loginData.password}
-                onChange={handleChange}
-              />
-
-              <span
-                onClick={() => setShowPassword(!showPassword)}
-                className="eye"
-              >
-                {showPassword ? <FaEyeSlash/> : <FaEye/>}
-              </span>
-
-            </div>
-
-            <div className="options">
-
-              <label>
-
-                <input
-                  type="checkbox"
-                  name="remember"
-                  checked={loginData.remember}
-                  onChange={handleChange}
-                />
-
-                Remember Me
-
-              </label>
-
-              <a href="/">Forgot Password?</a>
-
-            </div>
-
-            <button className="login-btn">
-              Login
-            </button>
-
-            <div className="register">
-
-              Don't have an account?
-
-              <Link to="/register"> Register</Link>
-
-            </div>
-
-          </form>
-
+          <div>
+            <h2>ComplyFlow</h2>
+            <span>Compliance Management System</span>
+          </div>
         </div>
 
-      </div>
+        <div className="presentation-content">
+          <span className="presentation-kicker">
+            Secure compliance workspace
+          </span>
 
-    </div>
+          <h1>
+            Governance built for clarity, control and
+            confidence.
+          </h1>
+
+          <p>
+            Manage complaints, assignments, evidence and
+            resolutions through one secure enterprise
+            platform.
+          </p>
+
+          <div className="presentation-features">
+            <div className="presentation-feature">
+              <span>
+                <FaCheckCircle />
+              </span>
+
+              <div>
+                <strong>Role-based access</strong>
+                <p>
+                  Dedicated portals for employees,
+                  administrators and support teams.
+                </p>
+              </div>
+            </div>
+
+            <div className="presentation-feature">
+              <span>
+                <FaFileAlt />
+              </span>
+
+              <div>
+                <strong>Complete ticket lifecycle</strong>
+                <p>
+                  Track complaints from initial submission
+                  through final resolution.
+                </p>
+              </div>
+            </div>
+
+            <div className="presentation-feature">
+              <span>
+                <FaShieldAlt />
+              </span>
+
+              <div>
+                <strong>Secure operations</strong>
+                <p>
+                  JWT-protected access with controlled
+                  permissions for every role.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="presentation-footer">
+          <span>Enterprise compliance portal</span>
+          <span>Secure • Controlled • Reliable</span>
+        </div>
+      </section>
+
+      <section className="login-form-section">
+        <div className="login-form-container">
+          <div className="mobile-login-brand">
+            <div className="login-brand-icon">
+              <FaShieldAlt />
+            </div>
+
+            <div>
+              <h2>ComplyFlow</h2>
+              <span>Compliance Portal</span>
+            </div>
+          </div>
+
+          <div className="login-heading">
+            <span>Secure account access</span>
+
+            <h1>Welcome back</h1>
+
+            <p>
+              Sign in to access your compliance workspace.
+            </p>
+          </div>
+
+          {errorMessage && (
+            <div className="login-error" role="alert">
+              <FaShieldAlt />
+
+              <span>{errorMessage}</span>
+
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                onClick={() => setErrorMessage("")}
+              >
+                <FaTimes />
+              </button>
+            </div>
+          )}
+
+          <form
+            className="royal-login-form"
+            onSubmit={handleSubmit}
+          >
+            <div className="login-field">
+              <label htmlFor="login-username">
+                Username
+              </label>
+
+              <div className="login-input-control">
+                <FaUser />
+
+                <input
+                  id="login-username"
+                  type="text"
+                  name="username"
+                  placeholder="Enter your username"
+                  value={loginData.username}
+                  onChange={handleChange}
+                  autoComplete="username"
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="login-field">
+              <div className="login-label-row">
+                <label htmlFor="login-password">
+                  Password
+                </label>
+
+                <Link to="/forgot-password">
+                  Forgot password?
+                </Link>
+              </div>
+
+              <div className="login-input-control">
+                <FaLock />
+
+                <input
+                  id="login-password"
+                  type={
+                    showPassword ? "text" : "password"
+                  }
+                  name="password"
+                  placeholder="Enter your password"
+                  value={loginData.password}
+                  onChange={handleChange}
+                  autoComplete="current-password"
+                  required
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  onClick={() =>
+                    setShowPassword(
+                      (previousValue) =>
+                        !previousValue
+                    )
+                  }
+                >
+                  {showPassword ? (
+                    <FaEyeSlash />
+                  ) : (
+                    <FaEye />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <label className="remember-control">
+              <input
+                type="checkbox"
+                name="remember"
+                checked={loginData.remember}
+                onChange={handleChange}
+              />
+
+              <span className="custom-checkbox">
+                <FaCheckCircle />
+              </span>
+
+              <span>Keep me signed in</span>
+            </label>
+
+            <button
+              type="submit"
+              className="royal-login-button"
+              disabled={submitting}
+            >
+              <FaSignInAlt />
+
+              <span>
+                {submitting
+                  ? "Signing in..."
+                  : "Sign in securely"}
+              </span>
+            </button>
+
+            <div className="login-divider">
+              <span>New to the portal?</span>
+            </div>
+
+            <div className="register-message">
+              <span>Don't have an account?</span>
+
+              <Link to="/register">
+                Create an account
+              </Link>
+            </div>
+          </form>
+
+          <div className="login-security-note">
+            <FaLock />
+
+            <span>
+              Your session is protected using secure JWT
+              authentication.
+            </span>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 };
 
