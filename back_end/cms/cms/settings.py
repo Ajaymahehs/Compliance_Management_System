@@ -42,9 +42,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     "rest_framework_simplejwt.token_blacklist",
+    "corsheaders"
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -140,3 +143,8 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
