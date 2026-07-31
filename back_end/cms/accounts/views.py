@@ -8,6 +8,7 @@ from .serializer import RegisterSerializer
 
 
 @api_view(['POST'])
+
 def register(request):
 
     serializer = RegisterSerializer(data=request.data)

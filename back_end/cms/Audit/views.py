@@ -14,6 +14,12 @@ from accounts.models import User
 @permission_classes([IsAuthenticated])
 def raise_ticket(request):
 
+    if request.user.role != "EMPLOYEE":
+        return Response(
+            {"message": "Only employees can raise tickets."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     serializer = TicketSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -31,6 +37,13 @@ def raise_ticket(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_tickets(request):
+
+    if request.user.role != "EMPLOYEE":
+            return Response(
+                {"message": "Only employees can raise tickets."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
 
     tickets = Ticket.objects.filter(employee=request.user)
 
@@ -62,6 +75,7 @@ def all_tickets(request):
 @permission_classes([IsAuthenticated])
 def assign_support(request, pk):
 
+    
     ticket = Ticket.objects.get(id=pk)
 
     support = User.objects.get(id=request.data["support_id"])
@@ -69,12 +83,17 @@ def assign_support(request, pk):
     ticket.assigned_to = support
     ticket.status = "IN_PROGRESS"
     ticket.save()
-
-    return Response({
-        "ticket_id": ticket.id,
-        "assigned_to": ticket.assigned_to.username,
-        "status": ticket.status
-    })
+    if request.user.role != "ADMIN":
+        return Response(
+            {"message": "Permission Denied"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    else:
+        return Response({
+            "ticket_id": ticket.id,
+            "assigned_to": ticket.assigned_to.username,
+            "status": ticket.status
+        })
 
 # Support views assigned tickets
 @api_view(['GET'])
@@ -91,8 +110,13 @@ def support_tickets(request):
     print("Tickets:", tickets)
 
     serializer = TicketSerializer(tickets, many=True)
-
-    return Response(serializer.data)
+    if request.user.role != "SUPPORT":
+        return Response(
+            {"message": "Permission Denied"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    else:
+        return Response(serializer.data)
 
 # Support closes ticket
 @api_view(['PUT'])
@@ -107,8 +131,14 @@ def close_ticket(request, pk):
 
     ticket.save()
 
-    return Response(
-        {
-            "message": "Ticket Closed Successfully"
-        }
-    )
+    if request.user.role != "SUPPORT":
+        return Response(
+            {"message": "Permission Denied"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    else:
+        return Response(
+            {
+                "message": "Ticket Closed Successfully"
+            }
+        )
