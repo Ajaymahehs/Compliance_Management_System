@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'Audit',
     'rest_framework',
     'rest_framework_simplejwt',
-    'accounts'
+    'accounts',
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
@@ -81,7 +82,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ticket',
         'USER': 'root',
-        'PASSWORD': 'Masa@11255',
+        'PASSWORD': 'Murali@01',
         'HOST': 'localhost',
         'PORT': '3306',
     }
