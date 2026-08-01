@@ -16,7 +16,7 @@ import {
 
 import "./Login.css";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+const API_BASE_URL = "https://compliance-management-system-lyeu.onrender.com/api";
 
 const Login = () => {
   const navigate = useNavigate();
