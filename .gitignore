@@ -1,0 +1,39 @@
+# Backend - Python
+back_end/.venv/
+back_end/venv/
+back_end/__pycache__/
+back_end/db.sqlite3
+back_end/*.db
+back_end/.env
+back_end/.env.local
+back_end/config/__pycache__/
+back_end/cms/__pycache__/
+back_end/cms/*/migrations/__pycache__/
+back_end/cms/accounts/__pycache__/
+back_end/cms/Audit/__pycache__/
+back_end/*.py[cod]
+back_end/*$py.class
+
+# Frontend - Node
+front_end/node_modules/
+front_end/build/
+front_end/.env
+front_end/.env.local
+front_end/npm-debug.log*
+front_end/yarn-debug.log*
+front_end/yarn-error.log*
+
+# Media files (large images)
+back_end/cms/media/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+*.log
