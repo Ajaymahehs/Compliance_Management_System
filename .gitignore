@@ -19,6 +19,7 @@ front_end/node_modules/
 front_end/build/
 front_end/.env
 front_end/.env.local
+front_end/.env.production
 front_end/npm-debug.log*
 front_end/yarn-debug.log*
 front_end/yarn-error.log*
